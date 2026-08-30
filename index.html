@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Mini ERP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>🚀 Mon Mini ERP</h1>
+        <p style="color: #666;">Le frontend appelle l'API Python, qui gère la base de données.</p>
+
+        <!-- SECTION CLIENTS -->
+        <div class="module">
+            <h2>📇 Module Clients</h2>
+            <div class="form-row">
+                <input type="text" id="clientNom" placeholder="Nom du client">
+                <input type="text" id="clientEmail" placeholder="Email">
+                <button onclick="addClient()">Ajouter</button>
+            </div>
+            <ul id="clientList"></ul>
+        </div>
+
+        <!-- SECTION FACTURES -->
+        <div class="module">
+            <h2>🧾 Module Factures</h2>
+            <div class="form-row">
+                <input type="number" id="factureClientId" placeholder="ID Client">
+                <input type="number" id="factureMontant" placeholder="Montant €">
+                <input type="text" id="factureDesc" placeholder="Description">
+                <button onclick="addFacture()">Créer Facture</button>
+            </div>
+            <ul id="factureList"></ul>
+        </div>
+    </div>
+
+    <script>
+        // Adresse de notre backend
+        const API_BASE = "http://127.0.0.1:8000/api";
+
+        // ----- FONCTIONS CLIENTS -----
+        async function loadClients() {
+            const res = await fetch(`${API_BASE}/clients`);
+            const clients = await res.json();
+            const list = document.getElementById('clientList');
+            list.innerHTML = clients.map(c => 
+                `<li>${c.nom} (${c.email}) - 💰 Solde : ${c.solde} €</li>`
+            ).join('');
+        }
+
+        async function addClient() {
+            const nom = document.getElementById('clientNom').value;
+            const email = document.getElementById('clientEmail').value;
+            await fetch(`${API_BASE}/clients`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nom, email })
+            });
+            document.getElementById('clientNom').value = '';
+            document.getElementById('clientEmail').value = '';
+            loadClients(); // Rafraîchir
+            loadFactures(); // Rafraîchir aussi les factures pour voir les noms
+        }
+
+        // ----- FONCTIONS FACTURES -----
+        async function loadFactures() {
+            const res = await fetch(`${API_BASE}/factures`);
+            const factures = await res.json();
+            const list = document.getElementById('factureList');
+            list.innerHTML = factures.map(f => 
+                `<li>Facture #${f.id} - Client : ${f.client_nom} - ${f.montant}€ - ${f.description || ''}</li>`
+            ).join('');
+        }
+
+        async function addFacture() {
+            const client_id = parseInt(document.getElementById('factureClientId').value);
+            const montant = parseFloat(document.getElementById('factureMontant').value);
+            const description = document.getElementById('factureDesc').value;
+
+            await fetch(`${API_BASE}/factures`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ client_id, montant, description })
+            });
+
+            document.getElementById('factureClientId').value = '';
+            document.getElementById('factureMontant').value = '';
+            document.getElementById('factureDesc').value = '';
+            
+            loadFactures();
+            loadClients(); // Rafraîchir les clients pour voir le solde augmenter !
+        }
+
+        // Charger les données au démarrage
+        loadClients();
+        loadFactures();
+    </script>
+</body>
+</html>
